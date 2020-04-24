@@ -1,0 +1,75 @@
+stages:
+  - build
+  - deploy
+
+services:
+- docker:18.09-dind
+
+variables:
+  #CI_DEBUG_TRACE: "true"
+  GIT_DEPTH: 10
+  PROJECT_NAME: yourdomain.com
+  REPO_NAME: frontend
+  IMAGE_TAG: ${CI_COMMIT_SHA}
+  DEVELOP_IMAGE: ${HUB_DEV_ADDR}/${PROJECT_NAME}/${REPO_NAME}:${CI_COMMIT_SHA}
+  PRODUCTION_IMAGE: ${HUB_DEV_ADDR}/${PROJECT_NAME}-production/${REPO_NAME}:${CI_COMMIT_TAG}
+  
+
+编译（Staging）:
+  services:
+  - docker:18.09-dind
+  stage: build
+  image: docker:stable
+  script:
+  - echo "start to build"
+  #- docker version
+  - docker build -t ${DEVELOP_IMAGE} .
+  - docker login -u $HUB_DEV_USERNAME -p $HUB_DEV_PASSWORD $HUB_DEV_ADDR
+  - docker push ${DEVELOP_IMAGE}
+  only:
+  - master
+
+部署（Staging）:
+  stage: deploy
+  image: 
+    name: alpine/helm:3.0.0-rc.2
+    entrypoint: [""]
+  script:
+  - init_helm
+  - helm upgrade --namespace ${PROJECT_NAME}-staging -f Charts/staging_values.yaml --set image.tag=${CI_COMMIT_SHA} --set image.repository=${HUB_DEV_ADDR}/${PROJECT_NAME}/${REPO_NAME} ${REPO_NAME} Charts/
+  only:
+  - master
+
+编译（Production）:
+  stage: build
+  image: docker:stable
+  script:
+  #- docker version
+  - docker build -t ${PRODUCTION_IMAGE} .
+  - docker login -u $HUB_DEV_USERNAME -p $HUB_DEV_PASSWORD $HUB_DEV_ADDR
+  - docker push ${PRODUCTION_IMAGE}
+  only:
+  - tags
+
+部署（Production）:
+  stage: deploy
+  image: 
+    name: alpine/helm:3.0.0-rc.2
+    entrypoint: [""]
+  script:
+  - init_helm
+  - helm upgrade --namespace ${PROJECT_NAME}-production -f Charts/production_values.yaml --set image.tag=${CI_COMMIT_TAG} --set image.repository=${HUB_DEV_ADDR}/${PROJECT_NAME}-production/${REPO_NAME} ${REPO_NAME} Charts/
+  only:
+  - tags
+
+.functions: &functions |
+    # Functions
+    function init_helm() {
+        echo $KUBECONFIG_C | base64 -d > ./kubeconfig
+        export KUBECONFIG="./kubeconfig"
+    }
+
+before_script:
+- *functions
+
+

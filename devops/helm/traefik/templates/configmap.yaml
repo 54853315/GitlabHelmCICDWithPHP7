@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-config
+data:
+  dynamic_conf.yml: |-
+{{ .Files.Get "config/dynamic_conf.yml" | indent 4}}

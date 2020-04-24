@@ -1,0 +1,54 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: frontend
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: frontend
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: APP_DEFAULT_TIMEZONE
+          value: "Asia/Shanghai"
+        - name: APP_DEBUG
+          value: {{ .Values.backend.debug | quote }}
+        - name: APPLICATION_ENV
+          value: {{ .Values.backend.active }}
+        - name: DATABASE_URL
+          value: {{ .Values.backend.datasource.url }}
+        - name: DATABASE_HOSTNAME
+          value: {{ .Values.backend.datasource.host }}
+        - name: DATABASE_DATABASE
+          value: {{ .Values.backend.datasource.database }}
+        - name: DATABASE_USERNAME
+          value: {{ .Values.backend.datasource.username }}
+        - name: DATABASE_PASSWORD
+          value: {{ .Values.backend.datasource.password }}
+        ports:
+          - name: http
+            containerPort: 80
+            protocol: TCP
+        # livenessProbe:
+        #   httpGet:
+        #     path: /
+        #     port: http
+        # readinessProbe:
+        #   httpGet:
+        #     path: /
+        #     port: http
+        resources:
+{{ toYaml .Values.resources | indent 12 }}

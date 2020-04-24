@@ -1,0 +1,44 @@
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`b2EtdGVzdGluZwo.staging.yourdomain.net`) 
+    kind: Rule
+    services:
+    - name: traefik
+      port: 80
+  tls:
+    certResolver: default
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-http
+spec:
+  entryPoints:
+    - web
+  routes:
+  - match: Host(`b2EtdGVzdGluZwo.staging.yourdomain.net`)
+    kind: Rule
+    services:
+    - name: traefik
+      port: 80
+    # 访问http://会跳转到https://，如果不需要可以去掉middlewares
+    middlewares:
+    - name: https-only
+
+---
+# Redirect to https
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: https-only
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true

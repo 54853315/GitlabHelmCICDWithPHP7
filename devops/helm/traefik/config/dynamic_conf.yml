@@ -1,0 +1,34 @@
+http:
+  # Add the router
+  routers:
+
+    frontend:
+      entryPoints:
+      - web
+      service: service-frontend
+      rule: PathPrefix(`/`)
+
+      # 如果你的程序是前后分离，那么后端和前端会使用不同的端口提供web服务，所以需要使用下边的配置
+    # admin-frontend:
+    #   entryPoints:
+    #   - web
+    #   service: service-admin-frontend
+    #   rule: PathPrefix(`/admin`)
+
+  # Add the service
+  services:
+
+
+    service-frontend:
+      loadBalancer:
+        servers:
+        - url: http://frontend
+        #- weight: 1
+        passHostHeader: false
+
+        #如果你的程序是前后分离，那么后端和前端会使用不同的端口提供web服务，所以需要使用下边的配置
+    # service-admin-frontend:
+    #   loadBalancer:
+    #     servers:
+    #     - url: http://admin-frontend
+    #     passHostHeader: false
